@@ -6,6 +6,8 @@
   <title>Feedback Individual - Pague Menos</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="shortcut icon" href="./img/OIP (1).jpg" type="image/x-icon">
   <style>
@@ -36,7 +38,7 @@
     img.logo {
       display: block;
       margin: 0 auto 20px;
-      width: 150px;
+      width: 100px;
       background-color: white;
       border-radius: 50%;
       padding: 10px;
@@ -72,7 +74,7 @@
       color: #ffffff; /* Garantindo que os labels sejam brancos */
     }
     
-    input, select {
+    input, select, textarea {
       width: 100%;
       padding: 12px;
       margin: 5px 0;
@@ -83,7 +85,12 @@
       font-size: 16px;
     }
     
-    input:focus, select:focus {
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+    
+    input:focus, select:focus, textarea:focus {
       outline: none;
       border-color: #4CAF50;
       box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
@@ -240,6 +247,18 @@
       align-items: center;
     }
     
+    /* Seção de pontos fortes e melhoria */
+    .pontos-section {
+      margin-top: 30px;
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+      padding-top: 20px;
+    }
+    
+    .pontos-section h3 {
+      margin-bottom: 10px;
+      color: #ffffff;
+    }
+    
     /* Adicionar um pouco de espaço no final da página */
     .footer-space {
       height: 50px;
@@ -306,6 +325,19 @@
       </div>
     </div>
 
+    <!-- Campos para pontos fortes e pontos de melhoria -->
+    <div class="pontos-section">
+      <h3>Pontos Fortes (para PDF)</h3>
+      <div class="form-group">
+        <textarea id="pontosFortes" placeholder="Descreva os pontos fortes do avaliado..."></textarea>
+      </div>
+      
+      <h3>Pontos de Melhoria (para PDF)</h3>
+      <div class="form-group">
+        <textarea id="pontosMelhoria" placeholder="Descreva os pontos que precisam ser melhorados..."></textarea>
+      </div>
+    </div>
+
     <div class="buttons">
       <button type="button" onclick="finalizarFeedback()" class="primary">Finalizar Feedback</button>
       <button type="button" onclick="exportarExcel()" class="secondary">Exportar Excel</button>
@@ -364,12 +396,18 @@
     </tbody>
   </table>
   
+  <!-- Logo para o PDF (oculto) -->
+  <img id="logoPagueMenos" src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo-pg-P6RySFm3xZOBgONn8XVQpHOqNn19R9.png" style="display: none;" alt="Logo Pague Menos">
+  
   <div class="footer-space"></div>
 </div>
 
 <script>
   const registros = [];
   let registrosVisible = false;
+  
+  // Referência para o jsPDF
+  const { jsPDF } = window.jspdf;
 
   function calcularMedia(...notas) {
     const soma = notas.reduce((a, b) => a + b, 0);
@@ -443,18 +481,30 @@
     const etica = Number(document.getElementById("etica").value);
     const pontualidade = Number(document.getElementById("pontualidade").value);
     const iniciativa = Number(document.getElementById("iniciativa").value);
+    
+    // Obter pontos fortes e de melhoria
+    const pontosFortes = document.getElementById("pontosFortes").value;
+    const pontosMelhoria = document.getElementById("pontosMelhoria").value;
 
     const media = calcularMedia(atendimento, vendasMP, vendasGN, faturamento, relacionamento, etica, pontualidade, iniciativa);
 
+    // Adiciona todos os dados, incluindo pontos fortes e de melhoria
     registros.push([
       nome, cargo, matricula, dataFormatada, atendimento, vendasMP, vendasGN,
-      faturamento, relacionamento, etica, pontualidade, iniciativa, media
+      faturamento, relacionamento, etica, pontualidade, iniciativa, media,
+      pontosFortes, pontosMelhoria
     ]);
 
     atualizarTabelaRegistros();
     atualizarTabelaExportacao();
+    
+    // Gerar o PDF automaticamente
+    gerarPDF(nome, cargo, matricula, dataFormatada, atendimento, vendasMP, vendasGN,
+      faturamento, relacionamento, etica, pontualidade, iniciativa, media,
+      pontosFortes, pontosMelhoria);
+    
     document.getElementById("feedbackForm").reset();
-    alert("Feedback enviado com sucesso!");
+    alert("Feedback enviado com sucesso! O PDF foi gerado automaticamente.");
   }
 
   function atualizarTabelaRegistros() {
@@ -497,23 +547,23 @@
     registros.forEach(registro => {
       const tr = document.createElement('tr');
       
-      // Adiciona todas as colunas
-      registro.forEach((valor, index) => {
+      // Adiciona todas as colunas (exceto pontos fortes e de melhoria)
+      for (let i = 0; i < 13; i++) {
         const td = document.createElement('td');
-        td.textContent = valor;
+        td.textContent = registro[i];
         td.style.border = '1px solid #000000';
         td.style.textAlign = 'center';
         
         // Aplica cores condicionais para as colunas de notas (índices 4 a 12)
-        if (index >= 4 && index <= 12) {
-          const nota = parseFloat(valor);
+        if (i >= 4 && i <= 12) {
+          const nota = parseFloat(registro[i]);
           if (!isNaN(nota)) {
             td.className = getExcelClass(nota);
           }
         }
         
         tr.appendChild(td);
-      });
+      }
       
       tbody.appendChild(tr);
     });
@@ -528,30 +578,33 @@
     // Usando a biblioteca XLSX para uma exportação mais segura
     const headers = [
       "Nome", "Cargo", "Matrícula", "Data", "Atend.", "V. MP", "V. GN/S",
-      "Faturação", "Relac.", "Ética", "Pontual", "Inic.", "Média"
+      "Faturação", "Relac.", "Ética", "Pontual", "Iniciativa", "Média"
     ];
 
-    const ws_data = [headers, ...registros];
+    // Cria uma cópia dos registros sem os pontos fortes e de melhoria
+    const registrosExcel = registros.map(registro => registro.slice(0, 13));
+    
+    const ws_data = [headers, ...registrosExcel];
     const ws = XLSX.utils.aoa_to_sheet(ws_data);
 
     // Ajusta largura das colunas baseado no conteúdo
     const wscols = headers.map((header, colIndex) => {
       let max_length = header.length;
-      for(let i=0; i<registros.length; i++) {
-        const cell_value = registros[i][colIndex];
+      for(let i=0; i<registrosExcel.length; i++) {
+        const cell_value = registrosExcel[i][colIndex];
         if(cell_value !== undefined && cell_value !== null) {
           max_length = Math.max(max_length, cell_value.toString().length);
         }
       }
-      return { wch: max_length + 0.5 };
+      return { wch: max_length + 0 };
     });
     ws['!cols'] = wscols;
 
     // Aplica cores condicionais para as colunas de notas (E até M: índices 4 a 12)
-    for (let row = 1; row <= registros.length; row++) {
+    for (let row = 1; row <= registrosExcel.length; row++) {
       for (let col = 4; col <= 12; col++) {
         const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
-        const valor = Number(registros[row - 1][col]);
+        const valor = Number(registrosExcel[row - 1][col]);
         
         if (!isNaN(valor)) {
           let color = "FFFFFF";
@@ -574,6 +627,91 @@
     XLSX.utils.book_append_sheet(wb, ws, "Relatorio Feedback");
 
     XLSX.writeFile(wb, "feedback_pague_menos.xlsx");
+  }
+  
+  function gerarPDF(nome, cargo, matricula, data, atendimento, vendasMP, vendasGN, 
+                   faturamento, relacionamento, etica, pontualidade, iniciativa, 
+                   media, pontosFortes, pontosMelhoria) {
+    
+    // Cria o nome do arquivo PDF (substituindo espaços por pontos)
+    const nomeArquivo = nome.replace(/\s+/g, '.') + '.pdf';
+    
+    // Cria um novo documento PDF
+    const doc = new jsPDF();
+    
+    // Adiciona o logo
+    const logoImg = document.getElementById('logoPagueMenos');
+    doc.addImage(logoImg, 'PNG', 15, 10, 180, 30);
+    
+    // Título
+    doc.setFontSize(18);
+    doc.setTextColor(0, 0, 128); // Azul escuro
+    doc.text('Feedback Individual', 105, 50, { align: 'center' });
+    
+    // Dados do Funcionário
+    doc.setFontSize(14);
+    doc.setTextColor(0, 0, 0); // Preto
+    doc.text('Dados do Funcionário', 15, 65);
+    
+    doc.setFontSize(12);
+    doc.text(`Nome: ${nome}`, 15, 75);
+    doc.text(`Cargo: ${cargo}`, 15, 85);
+    doc.text(`Matrícula: ${matricula}`, 15, 95);
+    doc.text(`Data: ${data}`, 15, 105);
+    
+    // Feedback Individual
+    doc.setFontSize(14);
+    doc.setTextColor(0, 0, 0); // Preto
+    doc.text('Feedback Individual', 15, 120);
+    
+    doc.setFontSize(12);
+    doc.text(`Atendimento ao cliente: ${atendimento}`, 15, 130);
+    doc.text(`Vendas MP: ${vendasMP}`, 15, 140);
+    doc.text(`Vendas GN/S: ${vendasGN}`, 15, 150);
+    doc.text(`Faturamento: ${faturamento}`, 15, 160);
+    doc.text(`Relacionamento Interno: ${relacionamento}`, 15, 170);
+    doc.text(`Ética profissional: ${etica}`, 15, 180);
+    doc.text(`Pontualidade: ${pontualidade}`, 15, 190);
+    doc.text(`Iniciativa para Aprender: ${iniciativa}`, 15, 200);
+    
+    doc.setFontSize(14);
+    doc.setTextColor(0, 0, 0); // Preto
+    doc.text(`Nota Média: ${media}`, 15, 215);
+    
+    // Pontos Fortes
+    doc.setFontSize(14);
+    doc.setTextColor(0, 0, 0); // Preto
+    doc.text('Pontos Fortes', 15, 230);
+    
+    // Quebra o texto em linhas para caber na página
+    const pontosFortesSplit = doc.splitTextToSize(pontosFortes, 180);
+    doc.setFontSize(12);
+    doc.text(pontosFortesSplit, 15, 240);
+    
+    // Verifica se precisa de uma nova página para os pontos de melhoria
+    if (240 + pontosFortesSplit.length * 7 > 280) {
+      doc.addPage();
+      doc.setFontSize(14);
+      doc.setTextColor(0, 0, 0); // Preto
+      doc.text('Pontos de Melhoria', 15, 20);
+      
+      const pontosMelhoriaSplit = doc.splitTextToSize(pontosMelhoria, 180);
+      doc.setFontSize(12);
+      doc.text(pontosMelhoriaSplit, 15, 30);
+    } else {
+      const yPos = 240 + pontosFortesSplit.length * 7 + 10;
+      
+      doc.setFontSize(14);
+      doc.setTextColor(0, 0, 0); // Preto
+      doc.text('Pontos de Melhoria', 15, yPos);
+      
+      const pontosMelhoriaSplit = doc.splitTextToSize(pontosMelhoria, 180);
+      doc.setFontSize(12);
+      doc.text(pontosMelhoriaSplit, 15, yPos + 10);
+    }
+    
+    // Salva o PDF
+    doc.save(nomeArquivo);
   }
 </script>
 </body>
