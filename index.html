@@ -396,8 +396,8 @@
     </tbody>
   </table>
   
-  <!-- Logo para o PDF (oculto) -->
-  <img id="logoPagueMenos" src="img/pague-menos-logo.png" style="display: none;" alt="Logo Pague Menos">
+  <!-- Logo para o PDF (oculto) 
+  <img id="logoPagueMenos" src="img/pague-menos-logo.png" style="display: none;" alt="Logo Pague Menos"> -->
   
   <div class="footer-space"></div>
 </div>
@@ -639,9 +639,9 @@
     // Cria um novo documento PDF
     const doc = new jsPDF();
     
-    // Adiciona o logo
+    /* Adiciona o logo
     const logoImg = document.getElementById('logoPagueMenos');
-    doc.addImage(logoImg, 'PNG', 15, 10, 180, 30);
+    doc.addImage(logoImg, 'PNG', 15, 10, 180, 30); */
     
     // Título
     doc.setFontSize(18);
