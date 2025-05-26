@@ -397,7 +397,7 @@
   </table>
   
   <!-- Logo para o PDF (oculto) -->
-  <img id="logoPagueMenos" src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo-pg-P6RySFm3xZOBgONn8XVQpHOqNn19R9.png" style="display: none;" alt="Logo Pague Menos">
+  <img id="logoPagueMenos" src="./img/pague-menos-logo.png" style="display: none;" alt="Logo Pague Menos">
   
   <div class="footer-space"></div>
 </div>
@@ -640,7 +640,7 @@
     const doc = new jsPDF();
     
     // Adiciona o logo
-    const logoImg = document.getElementById('pague-menos-logo.png');
+    const logoImg = document.getElementById('logoPagueMenos');
     doc.addImage(logoImg, 'PNG', 15, 10, 180, 30);
     
     // Título
